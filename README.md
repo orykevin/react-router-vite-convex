@@ -1,54 +1,122 @@
-# React + TypeScript + Vite
+# React + TypeScript + Vite + Router + Convex + Convex Auth
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A starter template for building SPA React applications with Convex and Convex Auth integration.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+* ✅ React Vite + React Router
+* ✅ Convex Backend Integration
+* ✅ OAuth with Google / Password via Convex Auth
+* ✅ JWT & JWKS configuration for secure authentication
 
-## Expanding the ESLint configuration
+---
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Getting Started
 
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+### 1. Create Google OAuth Credentials (optional for google)
+
+First, set up **Google OAuth** in the **Google Cloud Console**:
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/).
+2. Create OAuth credentials for **Web Application**.
+3. Note the **Client ID** and **Client Secret**.
+
+### 2. Set Convex Environment Variables (optional for google)
+
+Set the following environment variables in your **Convex dashboard** or via the **CLI**.
+
+| Variable             | Value from Google Cloud Console |
+| -------------------- | ------------------------------- |
+| `AUTH_GOOGLE_ID`     | OAuth **Client ID**             |
+| `AUTH_GOOGLE_SECRET` | OAuth **Client Secret**         |
+
+#### Setting via Convex Dashboard
+
+Navigate to your project in the [Convex dashboard](https://dashboard.convex.dev/), then:
+
+> **Project Settings > Environment Variables**
+
+Add:
+
+```
+AUTH_GOOGLE_ID=your-google-client-id
+AUTH_GOOGLE_SECRET=your-google-client-secret
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+#### Setting via Convex CLI
+
+```bash
+npx convex env set AUTH_GOOGLE_ID your-google-client-id
+npx convex env set AUTH_GOOGLE_SECRET your-google-client-secret
+```
+
+---
+
+### 3. Generate JWT Private Key & JWKS
+
+You need to generate the **JWT\_PRIVATE\_KEY** and **JWKS** to secure token signing:
+
+#### a. Install dependencies:
+
+```bash
+npm install jose
+```
+
+#### b. Create a file `generateKey.mjs` and paste the following code:
 
 ```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+import { exportJWK, exportPKCS8, generateKeyPair } from "jose";
 
-export default tseslint.config({
-  plugins: {
-    // Add the react-x and react-dom plugins
-    'react-x': reactX,
-    'react-dom': reactDom,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended typescript rules
-    ...reactX.configs['recommended-typescript'].rules,
-    ...reactDom.configs.recommended.rules,
-  },
-})
+const keys = await generateKeyPair("RS256", { extractable: true });
+
+const privateKey = await exportPKCS8(keys.privateKey);
+const publicKey = await exportJWK(keys.publicKey);
+const jwks = JSON.stringify({ keys: [{ use: "sig", ...publicKey }] });
+
+process.stdout.write(
+  `JWT_PRIVATE_KEY="${privateKey.trimEnd().replace(/\n/g, " ")}"\n`
+);
+process.stdout.write(`JWKS=${jwks}\n`);
 ```
+
+#### c. Run the generator:
+
+```bash
+node generateKey.mjs
+```
+
+This will output:
+
+```
+JWT_PRIVATE_KEY="..."
+JWKS=...
+```
+
+#### d. Apply to Convex Environment
+
+##### Via Dashboard
+
+Copy both values and add them via:
+
+> **Project Settings > Environment Variables**
+
+##### Via CLI
+
+```bash
+npx convex env set JWT_PRIVATE_KEY "your-generated-private-key"
+npx convex env set JWKS "your-generated-jwks"
+npx convex env set SITE_URL "application url (eg. http://localhost:3000)"
+```
+
+---
+
+## 4. Run the Application
+
+Once the environment is configured, start the Next.js app:
+
+```bash
+npm run dev
+```
+
+---
+
