@@ -3,7 +3,6 @@ import AuthLayout from "./_auth";
 import Login from "./_public/login/Login";
 import PublicLayout from "./_public";
 import MainPage from "./_auth/main/Main";
-import Leaderboard from "./_public/stream-overlay/Leaderboard";
 
 const MainRoute = () => {
   return (
